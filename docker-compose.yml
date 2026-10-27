@@ -1,0 +1,38 @@
+version: '3.8'
+
+services:
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: creditrisk-backend
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    environment:
+      - HOST=0.0.0.0
+      - PORT=8000
+      - API_PREFIX=/api
+      - LOG_LEVEL=INFO
+      - ALLOWED_ORIGINS=http://localhost:5173,http://localhost,http://localhost:80,http://127.0.0.1:5173,http://127.0.0.1,http://127.0.0.1:80
+      - MODEL_BUNDLE_PATH=models/credit_risk_bundle.joblib
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 5s
+
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        - VITE_API_BASE_URL=http://localhost:8000/api
+    container_name: creditrisk-frontend
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    depends_on:
+      backend:
+        condition: service_healthy
